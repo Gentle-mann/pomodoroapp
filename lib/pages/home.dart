@@ -1,28 +1,50 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pomodoro/pages/task_list.dart';
+import 'widgets.dart';
+import '../classes/models/task.dart';
+import '../services/notification_service.dart';
 
 class Home extends StatefulWidget {
-  const Home({Key? key}) : super(key: key);
+  final Task task;
+  const Home({Key? key, required this.task}) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
 }
 
 class _HomeState extends State<Home> {
+  Timer? timer;
+  late int focus;
+  late int chillTime;
+  late int sessions;
+  bool isOnBreak = false;
+  final NotificationService notificationService = NotificationService();
+
   @override
   void initState() {
+    focus = widget.task.focusTime * 60;
+    chillTime = widget.task.breakTime * 60;
+    sessions = int.parse(widget.task.loops);
+
+    notificationService.initialize();
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isRunning = timer == null ? false : timer!.isActive;
+    final isComplete = sessions == 0 ? true : false;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         elevation: 0.0,
         title: const Text(
-          'Pomodoro',
+          'Multiple Session Pomodoro',
           style: TextStyle(
-            fontSize: 24.0,
+            fontSize: 18.0,
           ),
         ),
         bottom: const PreferredSize(
@@ -61,7 +83,7 @@ class _HomeState extends State<Home> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Flexible(
-            //fit: FlexFit.tight,
+            fit: FlexFit.tight,
             flex: 1,
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -71,9 +93,12 @@ class _HomeState extends State<Home> {
                   fit: FlexFit.tight,
                   flex: 1,
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
-                      buildTaskContainer(),
+                      buildTaskContainer(widget.task.title),
+                      const SizedBox(height: 12.0),
+                      buildSessionIndicator(isOnBreak),
+                      buildRemainingSessionsText(sessions),
                     ],
                   ),
                 ),
@@ -89,7 +114,14 @@ class _HomeState extends State<Home> {
               children: [
                 Align(
                   alignment: Alignment.center,
-                  child: buildTimeStack(),
+                  child: buildTimeStack(
+                    focus: focus,
+                    chillTime: chillTime,
+                    focusTime: widget.task.focusTime,
+                    breakTime: widget.task.breakTime,
+                    isOnBreak: isOnBreak,
+                    timer: timer,
+                  ),
                 ),
               ],
             ),
@@ -102,11 +134,16 @@ class _HomeState extends State<Home> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                buildPauseButton(),
-                const SizedBox(width: 16.0),
-                buildContinueButton(),
-                const SizedBox(width: 16.0),
-                buildStopButton(),
+                !isRunning || isComplete
+                    ? buildContinueButton(isOnBreak, startSession)
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          buildPauseButton(stopSession),
+                          const SizedBox(width: 24.0),
+                          buildStopButton(restartTimer),
+                        ],
+                      ),
               ],
             ),
           ),
@@ -115,182 +152,79 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Widget buildTaskContainer() {
-    return Container(
-      padding: const EdgeInsets.only(left: 16.0),
-      margin: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.deepPurpleAccent.shade100,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurpleAccent.shade100,
-            blurRadius: 12.0,
-            //spreadRadius: 8.0,
-            blurStyle: BlurStyle.outer,
-          ),
-        ],
-        borderRadius: BorderRadius.circular(40.0),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            const Flexible(
-              flex: 4,
-              child: Text(
-                'Task: Example Task',
-                style: TextStyle(
-                  fontSize: 20.0,
-                ),
-              ),
-            ),
-            Flexible(
-              flex: 1,
-              fit: FlexFit.tight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.edit, size: 24),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+  void resetTimer() {
+    setState(() {
+      focus = widget.task.focusTime * 60;
+      chillTime = widget.task.breakTime * 60;
+      isOnBreak = false;
+    });
+  }
+
+  void restartTimer() {
+    setState(() {
+      stopSession(reset: true);
+
+      sessions = int.parse(widget.task.loops);
+    });
+  }
+
+  void stopSession({bool reset = false}) {
+    setState(() {
+      timer?.cancel();
+    });
+
+    if (reset) {
+      resetTimer();
+    }
+  }
+
+  void startBreak() {
+    chillTime--;
+  }
+
+  void startFocus() {
+    focus--;
+  }
+
+  void startSession({bool reset = false}) {
+    timer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      if (reset) {
+        resetTimer();
+      }
+      setState(() {
+        if (focus > 0 && sessions > 0) {
+          startFocus();
+        } else if (focus == 0) {
+          showFocusNotification();
+          isOnBreak = true;
+          focus = -1;
+        } else if (chillTime > 0 && sessions > 0) {
+          startBreak();
+        } else if (chillTime == 0) {
+          showBreakNotification();
+          sessions--;
+          stopSession(reset: true);
+          startSession();
+        } else {
+          restartTimer();
+        }
+      });
+    });
+  }
+
+  Future<void> showFocusNotification() async {
+    await notificationService.showFocusNotification(
+      id: 0,
+      title: 'Progress!!',
+      body: 'Focus Time over',
     );
   }
 
-  Widget buildPauseButton() {
-    return Container(
-      height: 80,
-      width: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurpleAccent.shade100,
-            blurRadius: 6.0,
-            spreadRadius: 1.0,
-            offset: const Offset(0.0, 4.0),
-          ),
-        ],
-      ),
-      child: Card(
-        color: Colors.deepPurpleAccent,
-        shadowColor: Colors.deepPurpleAccent.shade100,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50.0),
-        ),
-        child: const Icon(Icons.pause_outlined, color: Colors.white, size: 48),
-      ),
-    );
-  }
-
-  Widget buildContinueButton() {
-    return Container(
-      height: 80,
-      width: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurpleAccent.shade100,
-            blurRadius: 6.0,
-            spreadRadius: 1.0,
-            offset: const Offset(0.0, 4.0),
-          ),
-        ],
-      ),
-      child: Card(
-        color: Colors.deepPurpleAccent,
-        shadowColor: Colors.deepPurpleAccent.shade100,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50.0),
-        ),
-        child:
-            const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 48),
-      ),
-    );
-  }
-
-  Widget buildStopButton() {
-    return Container(
-      height: 80,
-      width: 80,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(50.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.deepPurpleAccent.shade100,
-            blurRadius: 6.0,
-            spreadRadius: 1.0,
-            offset: const Offset(0.0, 4.0),
-          ),
-        ],
-      ),
-      child: Card(
-        color: Colors.deepPurpleAccent,
-        shadowColor: Colors.deepPurpleAccent.shade100,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(50.0),
-        ),
-        child: const Icon(Icons.stop_rounded, color: Colors.white, size: 48),
-      ),
-    );
-  }
-
-  Widget buildTimeText() {
-    return const Text(
-      '00:00',
-      style: TextStyle(
-        color: Colors.deepPurpleAccent,
-        fontSize: 80,
-        fontWeight: FontWeight.w100,
-      ),
-    );
-  }
-
-  Widget buildProgressIndicator() {
-    return const CircularProgressIndicator(
-      value: 0.4,
-      strokeWidth: 4,
-      valueColor: AlwaysStoppedAnimation(Colors.white),
-      backgroundColor: Colors.deepPurpleAccent,
-      color: Colors.white,
-    );
-  }
-
-  Widget buildTimeStack() {
-    return Container(
-      height: 240,
-      width: 240,
-      decoration: BoxDecoration(
-        color: Colors.black12,
-        borderRadius: BorderRadius.circular(120.0),
-        boxShadow: [
-          BoxShadow(
-            blurRadius: 16,
-            color: Colors.deepPurpleAccent.shade100,
-            blurStyle: BlurStyle.outer,
-          ),
-        ],
-      ),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          buildProgressIndicator(),
-          Center(
-            child: buildTimeText(),
-          ),
-        ],
-      ),
+  Future<void> showBreakNotification() async {
+    await notificationService.showBreakNotification(
+      id: 0,
+      title: 'Progress!!',
+      body: 'Break Time over',
     );
   }
 }

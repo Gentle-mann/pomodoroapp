@@ -14,7 +14,7 @@ class TasksDatabase {
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB('tasksp.db');
+    _database = await _initDB('tasksr.db');
     return _database!;
   }
 
@@ -36,7 +36,8 @@ class TasksDatabase {
     ${TaskFields.title} $textType,
     ${TaskFields.focusTime} $integerType,
     ${TaskFields.breakTime} $integerType,
-    ${TaskFields.createdTime} $textType
+    ${TaskFields.createdTime} $textType,
+    ${TaskFields.loops} $textType
     )
     ''');
   }

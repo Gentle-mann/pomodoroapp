@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../classes/models/task.dart';
 
@@ -27,6 +28,7 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
   late int durationFocus;
   late int durationBreak;
   late DateTime createdDate;
+  late TextEditingController loopController = TextEditingController();
 
   @override
   void initState() {
@@ -36,11 +38,13 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
 
     if (widget.add) {
       titleController.text = '';
+      loopController.text = '';
       durationFocus = 0;
       durationBreak = 0;
       createdDate = DateTime.now();
     } else {
       titleController.text = _taskEdit.task.title;
+      loopController.text = _taskEdit.task.loops;
       durationFocus = _taskEdit.task.focusTime;
       durationBreak = _taskEdit.task.breakTime;
       createdDate = DateTime.parse(_taskEdit.task.createdTime);
@@ -52,6 +56,7 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
   @override
   void dispose() {
     titleController.dispose();
+    loopController.dispose();
     super.dispose();
   }
 
@@ -59,42 +64,44 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          leading: IconButton(
-            onPressed: () {
-              _taskEdit.action = 'Cancel';
-              Navigator.pop(context, _taskEdit);
-            },
-            icon: const Icon(
-              Icons.cancel_rounded,
-              color: Colors.purple,
-            ),
+        leading: IconButton(
+          onPressed: () {
+            _taskEdit.action = 'Cancel';
+            Navigator.pop(context, _taskEdit);
+          },
+          icon: const Icon(
+            Icons.cancel_rounded,
+            color: Colors.purple,
           ),
-          automaticallyImplyLeading: false,
-          elevation: 0,
-          title: const Text('Add Task'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                _taskEdit.action = 'Save';
-                final int? id = _taskEdit.task.id;
-                final Task task = Task(
-                  id: id,
-                  title: titleController.text,
-                  focusTime: focusDuration.inMinutes,
-                  breakTime: breakDuration.inMinutes,
-                  createdTime: DateTime.now().toIso8601String(),
-                );
-                _taskEdit.task = task;
-                Navigator.of(context).pop(_taskEdit);
-              },
-              child: const Text(
-                'Save',
-                style: TextStyle(
-                  fontSize: 20,
-                ),
+        ),
+        automaticallyImplyLeading: false,
+        elevation: 0,
+        title: const Text('Add Task'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _taskEdit.action = 'Save';
+              final int? id = _taskEdit.task.id;
+              final Task task = Task(
+                loops: loopController.text,
+                id: id,
+                title: titleController.text,
+                focusTime: focusDuration.inMinutes,
+                breakTime: breakDuration.inMinutes,
+                createdTime: DateTime.now().toIso8601String(),
+              );
+              _taskEdit.task = task;
+              Navigator.of(context).pop(_taskEdit);
+            },
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                fontSize: 20,
               ),
             ),
-          ]),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -112,6 +119,8 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
         const SizedBox(height: 16.0),
         buildFocusTimeCard(),
         buildBreakTimeCard(),
+        const SizedBox(height: 12.0),
+        buildLoopsField(),
       ],
     );
   }
@@ -131,6 +140,24 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
         fontSize: 20.0,
       ),
       autofocus: false,
+      //validator: ,
+    );
+  }
+
+  Widget buildLoopsField() {
+    return TextFormField(
+      controller: loopController,
+      decoration: const InputDecoration(
+          icon: Icon(Icons.repeat_on_rounded),
+          labelText: 'Enter no. of sessions',
+          //errorText: 'Field cannot be empty',
+          border: OutlineInputBorder()),
+      textInputAction: TextInputAction.done,
+      keyboardType: TextInputType.number,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      style: const TextStyle(
+        fontSize: 15.0,
+      ),
       //validator: ,
     );
   }
@@ -240,7 +267,7 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
       context: context,
       builder: (context) {
         return Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(16.0),
             ),
@@ -267,7 +294,7 @@ class _AddOrEditTaskState extends State<AddOrEditTask> {
       context: context,
       builder: (context) {
         return Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             borderRadius: BorderRadius.vertical(
               top: Radius.circular(16.0),
             ),

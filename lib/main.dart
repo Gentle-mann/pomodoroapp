@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pomodoro/pages/home.dart';
+import 'package:pomodoro/pages/task_list.dart';
 import 'package:pomodoro/provider/task_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -22,7 +23,7 @@ class MyApp extends StatelessWidget {
           brightness: Brightness.dark,
           primarySwatch: Colors.purple,
         ),
-        home: const Home(),
+        home: const TaskListPage(),
       ),
     );
   }

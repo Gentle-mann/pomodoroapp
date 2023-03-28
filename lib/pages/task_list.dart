@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pomodoro/pages/home.dart';
 import 'package:provider/provider.dart';
 
 import '../classes/models/task.dart';
@@ -72,6 +73,7 @@ class _TaskListPageState extends State<TaskListPage> {
               add: true,
               index: -1,
               task: Task(
+                loops: '',
                 title: '',
                 focusTime: 0,
                 breakTime: 0,
@@ -162,7 +164,17 @@ class _TaskListPageState extends State<TaskListPage> {
                         ],
                       ),
                       trailing: IconButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return Home(
+                                  task: snapshot.data[index],
+                                );
+                              },
+                            ),
+                          );
+                        },
                         icon: const Icon(
                           Icons.play_arrow_rounded,
                           color: Colors.green,

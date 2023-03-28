@@ -6,13 +6,15 @@ class TaskFields {
     title,
     focusTime,
     breakTime,
-    createdTime
+    createdTime,
+    loops,
   ];
   static const String id = '_id';
   static const String title = 'title';
   static const String focusTime = 'focusTime';
   static const String breakTime = 'breakTime';
   static const String createdTime = 'createdTime';
+  static const String loops = 'loops';
 }
 
 class Task {
@@ -21,6 +23,7 @@ class Task {
   final int focusTime;
   final int breakTime;
   final String createdTime;
+  final String loops;
 
   Task({
     this.id,
@@ -28,6 +31,7 @@ class Task {
     required this.focusTime,
     required this.breakTime,
     required this.createdTime,
+    required this.loops,
   });
 
   Task copy({
@@ -36,12 +40,14 @@ class Task {
     int? focusTime,
     int? breakTime,
     String? createdTime,
+    String? loops,
   }) {
     return Task(
       title: title ?? this.title,
       focusTime: focusTime ?? this.focusTime,
       breakTime: breakTime ?? this.breakTime,
       createdTime: createdTime ?? this.createdTime,
+      loops: loops ?? this.loops,
     );
   }
 
@@ -52,6 +58,7 @@ class Task {
       focusTime: json[TaskFields.focusTime] as int,
       breakTime: json[TaskFields.breakTime] as int,
       createdTime: json[TaskFields.createdTime] as String,
+      loops: json[TaskFields.loops] as String,
     );
   }
 
@@ -61,6 +68,7 @@ class Task {
         TaskFields.breakTime: breakTime,
         TaskFields.focusTime: focusTime,
         TaskFields.createdTime: createdTime,
+        TaskFields.loops: loops,
       };
 }
 

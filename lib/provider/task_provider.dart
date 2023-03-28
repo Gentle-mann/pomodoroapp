@@ -4,6 +4,8 @@ import '../classes/models/task.dart';
 import '../db/tasks_database.dart';
 
 class TaskProvider extends ChangeNotifier {
+  bool _isBreak = false;
+  bool get isBreak => _isBreak;
   Future<List<Task>> _getAllTasks() async {
     final List<Task> tasks = await TasksDatabase.instance.readAllTask();
     return tasks;
@@ -15,7 +17,6 @@ class TaskProvider extends ChangeNotifier {
 
   Future<void> createTask(task) async {
     await TasksDatabase.instance.create(task);
-    print('task created');
     notifyListeners();
   }
 
@@ -28,6 +29,16 @@ class TaskProvider extends ChangeNotifier {
   Future<void> deleteTask(int taskId) async {
     await TasksDatabase.instance.delete(taskId);
     print('deleted task with id $taskId');
+    notifyListeners();
+  }
+
+  void isOnBreak() {
+    _isBreak = true;
+    notifyListeners();
+  }
+
+  void isNotOnBreak() {
+    _isBreak = false;
     notifyListeners();
   }
 }

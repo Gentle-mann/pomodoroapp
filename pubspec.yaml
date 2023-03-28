@@ -40,6 +40,10 @@ dependencies:
   intl: ^0.17.0
   path: ^1.8.2
   provider: ^6.0.4
+  flutter_local_notifications: ^13.0.0
+  rxdart: ^0.27.7
+  timezone: ^0.9.1
+  flutter_background: ^1.2.0
 
 dev_dependencies:
   flutter_test:
